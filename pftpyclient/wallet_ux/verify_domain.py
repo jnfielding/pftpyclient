@@ -2,18 +2,46 @@ import requests
 import toml
 import xrpl
 from urllib.parse import urlparse
+import socket
 
 def is_valid_domain(domain):
     """
-    Validates the domain to ensure it is well-formed and secure.
-    
+    Validates the domain to ensure it is well-formed, secure, and resolves to a public IP.
+
     Params:
         domain: str - The domain to validate
     Returns:
         bool - True if the domain is valid, False otherwise
     """
-    parsed = urlparse(f"https://{domain}")  # Parse the domain as a URL
-    return parsed.scheme in ("http", "https") and bool(parsed.netloc)
+    try:
+        # Parse the domain
+        parsed = urlparse(f"https://{domain}")
+        if not (parsed.scheme == "https" and parsed.netloc):
+            return False  # Must use HTTPS and have a valid hostname
+
+        # Resolve the domain to an IP address
+        ip_address = socket.gethostbyname(parsed.hostname)
+        # Ensure the resolved IP is not private or internal
+        private_ip_ranges = [
+            ("10.0.0.0", "10.255.255.255"),
+            ("172.16.0.0", "172.31.255.255"),
+            ("192.168.0.0", "192.168.255.255"),
+            ("127.0.0.0", "127.255.255.255"),  # Loopback
+        ]
+        for start, end in private_ip_ranges:
+            if ip_in_range(ip_address, start, end):
+                return False
+        return True
+    except (socket.gaierror, ValueError):
+        return False
+
+def ip_in_range(ip, start, end):
+    """
+    Check if an IP is in a given range.
+    """
+    import ipaddress
+    ip = ipaddress.ip_address(ip)
+    return ipaddress.ip_address(start) <= ip <= ipaddress.ip_address(end)
 
 def verify_account_domain(account):
     """
