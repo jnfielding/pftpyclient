@@ -1,10 +1,11 @@
 from xrpl.wallet import Wallet
 from pftpyclient.user_login.credentials import CredentialManager
+import os
 
 def test_ecdh_key_derivation():
-    # Setup test credentials
-    username = 'test_user'
-    password = 'test_password'
+    # Load test credentials from environment variables
+    username = os.getenv('TEST_USERNAME', 'default_user')
+    password = os.getenv('TEST_PASSWORD', 'default_password')
     wallet = Wallet.create()
 
     # Create credential manager with test wallet
@@ -22,7 +23,7 @@ def test_ecdh_key_derivation():
     # Get public key
     public_key = cred_manager.get_ecdh_public_key()
 
-    # Verify its a valid ED25519 public key (33 bytes with ED prefix)
+    # Verify it's a valid ED25519 public key (33 bytes with ED prefix)
     assert len(bytes.fromhex(public_key)) == 33
     assert bytes.fromhex(public_key)[0] == 0xED
 
